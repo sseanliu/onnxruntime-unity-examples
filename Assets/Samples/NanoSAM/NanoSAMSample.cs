@@ -40,15 +40,15 @@ public sealed class NanoSAMSample : MonoBehaviour
     private NanoSAMVisualizer visualizer;
 
     private Vector2? trackingPoint = null;
-    private Vector2? smoothedTrackingPoint = null; // 平滑跟踪点
+    private Vector2? smoothedTrackingPoint = null; // Smoothed tracking point
     private Image trackingPointImage;
 
     private async void Start()
     {
-        // 显示加载指示器
+        // Show loading indicator
         loadingIndicator.SetActive(true);
 
-        // 加载模型文件
+        // Load model files
         var token = destroyCancellationToken;
         byte[] encoderModel = await encoderModelFile.Load(token);
         byte[] decoderModel = await decoderModelFile.Load(token);
@@ -56,7 +56,7 @@ public sealed class NanoSAMSample : MonoBehaviour
         inference = new NanoSAM(encoderModel, decoderModel, options);
         visualizer = GetComponent<NanoSAMVisualizer>();
 
-        // 注册点击事件
+        // Register click event
         var callback = new EventTrigger.TriggerEvent();
         callback.AddListener((data) => OnPointerDown((PointerEventData)data));
         var trigger = preview.gameObject.AddComponent<EventTrigger>();
@@ -66,20 +66,20 @@ public sealed class NanoSAMSample : MonoBehaviour
             callback = callback,
         });
 
-        // 监听纹理更新
+        // Listen for texture updates
         if (TryGetComponent(out VirtualTextureSource source))
         {
             source.OnTexture.AddListener(OnTexture);
         }
 
-        // 设置UI
+        // Setup UI
         maskDropdown.ClearOptions();
         maskDropdown.AddOptions(new List<string> { "Negative", "Positive" });
         maskDropdown.value = 1;
 
         resetButton.onClick.AddListener(ResetMask);
 
-        // 隐藏加载指示器
+        // Hide loading indicator
         loadingIndicator.SetActive(false);
     }
 
@@ -120,7 +120,7 @@ public sealed class NanoSAMSample : MonoBehaviour
             return;
         }
 
-        // 归一化坐标并翻转Y轴
+        // Normalize coordinates and flip Y axis
         Vector2 point = Rect.PointToNormalized(preview.rect, rectPosition);
         point.y = 1.0f - point.y;
 
@@ -162,7 +162,7 @@ public sealed class NanoSAMSample : MonoBehaviour
         inference.Run(inputTexture, points.AsReadOnly());
         visualizer.UpdateMask(inference.OutputMask, inputTexture);
 
-        UpdateTrackingPoint(inference.OutputMask.ToArray(), 256, 256); // 调整为动态分辨率
+        UpdateTrackingPoint(inference.OutputMask.ToArray(), 256, 256); // Adjust to dynamic resolution
     }
 
     private void UpdateTrackingPoint(float[] mask, int width, int height)
@@ -175,7 +175,7 @@ public sealed class NanoSAMSample : MonoBehaviour
             {
                 float value = mask[y * width + x];
 
-                if (value > 0.5f) // 阈值
+                if (value > 0.5f) // Threshold
                 {
                     sumX += x * value;
                     sumY += y * value;
@@ -188,9 +188,9 @@ public sealed class NanoSAMSample : MonoBehaviour
         {
             Vector2 newPoint = new(sumX / totalWeight / width, 1.0f - (sumY / totalWeight / height));
 
-            // 平滑跟踪点
+            // Smoothed tracking point
             smoothedTrackingPoint = smoothedTrackingPoint.HasValue
-                ? Vector2.Lerp(smoothedTrackingPoint.Value, newPoint, 0.3f) // 线性插值
+                ? Vector2.Lerp(smoothedTrackingPoint.Value, newPoint, 0.3f) // Linear interpolation
                 : newPoint;
 
             trackingPoint = smoothedTrackingPoint;
